@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PaymentModule } from './payment/payment.module';
 import { ConfigModule } from '@nestjs/config';
+import { AirdropModule } from './airdrop/airdrop.module';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    AirdropModule,
   ],
   controllers: [AppController],
   providers: [AppService],

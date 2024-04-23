@@ -1,5 +1,13 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
 import {
+  BadRequestException,
+  Body,
+  Controller,
+  Inject,
+  Post,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import {
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiOperation,
@@ -22,10 +30,23 @@ export class PaymentController {
     description: 'Shares airdropped and payment collected',
   })
   @ApiUnprocessableEntityResponse({ description: 'Bad Request' })
+  @ApiBadRequestResponse({ description: 'Unprocessable Entity' })
   @ApiForbiddenResponse({ description: 'Unauthorized Request' })
   @Post()
   async airdropAndCollectPayment(@Body() airdropDto: AirdropDto) {
-    const res = await this._paymentService.airdropAndCollectPayment(airdropDto);
-    return res;
+    try {
+      const res =
+        await this._paymentService.airdropAndCollectPayment(airdropDto);
+      return res;
+    } catch (error) {
+      switch (error.message) {
+        case 'Invalid payment intent':
+          throw new UnprocessableEntityException(error.message);
+        case 'Airdrop failed':
+          throw new UnprocessableEntityException(error.message);
+        default:
+          throw new BadRequestException(error.message);
+      }
+    }
   }
 }

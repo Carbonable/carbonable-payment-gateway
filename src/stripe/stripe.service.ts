@@ -25,4 +25,14 @@ export class StripeService {
       return false;
     }
   }
+
+  async capturePaymentIntent(
+    paymentIntentId: string,
+  ): Promise<Stripe.PaymentIntent> {
+    return this.stripe.paymentIntents.capture(paymentIntentId);
+  }
+
+  async cancelPaymentIntent(paymentIntentId: string): Promise<void> {
+    await this.stripe.paymentIntents.cancel(paymentIntentId);
+  }
 }

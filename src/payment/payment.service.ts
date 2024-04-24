@@ -2,14 +2,22 @@ import { Injectable } from '@nestjs/common';
 import { AirdropDto } from './dto/airdrop.dto';
 import { StripeService } from 'src/stripe/stripe.service';
 import { AirdropService } from 'src/airdrop/airdrop.service';
+import { GetTransactionReceiptResponse } from 'starknet';
+import Stripe from 'stripe';
 
+export interface PaymentServiceResponse {
+  tx: GetTransactionReceiptResponse;
+  pi: Stripe.PaymentIntent;
+}
 @Injectable()
 export class PaymentService {
   constructor(
     private stripeService: StripeService,
     private airdropService: AirdropService,
   ) {}
-  async airdropAndCollectPayment(airdropDto: AirdropDto) {
+  async airdropAndCollectPayment(
+    airdropDto: AirdropDto,
+  ): Promise<PaymentServiceResponse> {
     // Check if the payment intent is valid
     const isValidPaymentIntent = await this.stripeService.isValidPaymentIntent(
       airdropDto.paymentIntentId,
@@ -19,15 +27,20 @@ export class PaymentService {
       throw new Error('Invalid payment intent');
     }
 
-    const tx = await this.airdropService.airdropShares(airdropDto);
-
-    if (!tx) {
-      throw new Error('Airdrop failed');
+    let tx = undefined;
+    // Airdrop shares
+    try {
+      tx = await this.airdropService.airdropShares(airdropDto);
+    } catch (error) {
+      await this.stripeService.cancelPaymentIntent(airdropDto.paymentIntentId);
+      throw new Error(error.message);
     }
 
-    // TODO: Collect payment
+    // Capture payment intent
+    const pi = await this.stripeService.capturePaymentIntent(
+      airdropDto.paymentIntentId,
+    );
 
-    // Return the result
-    return { isValidPaymentIntent, tx };
+    return { tx, pi };
   }
 }

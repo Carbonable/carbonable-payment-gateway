@@ -4,6 +4,7 @@ import {
   Account,
   Contract,
   GetTransactionReceiptResponse,
+  TransactionFinalityStatus,
 } from 'starknet';
 import { AirdropDto } from 'src/payment/dto/airdrop.dto';
 import { ConfigService } from '@nestjs/config';
@@ -76,9 +77,11 @@ export class AirdropService {
         calldata: call.calldata,
       });
 
-      const tx = await this.provider.waitForTransaction(res.transaction_hash);
+      const tx = await this.provider.waitForTransaction(res.transaction_hash, {
+        successStates: [TransactionFinalityStatus.ACCEPTED_ON_L2],
+      });
 
-      if (tx.finality_status !== 'ACCEPTED_ON_L2') {
+      if (tx === undefined) {
         throw new Error('Transaction failed');
       }
 

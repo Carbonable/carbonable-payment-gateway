@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   RpcProvider,
   Account,
@@ -11,27 +11,24 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AirdropService {
-  private provider: RpcProvider;
   private account: Account;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject('STARKNET_RPC_PROVIDER') private rpcProvider: RpcProvider,
+  ) {
     this.initializeProviderAndAccount();
   }
 
   private initializeProviderAndAccount(): void {
-    const nodeUrl = this.configService.get<string>('NODE_URL');
-    const rpcApiKey = this.configService.get<string>('RPC_API_KEY');
     const walletAddress = this.configService.get<string>(
       'ARGENT_WALLET_ADDRESS',
     );
     const walletPrivateKey = this.configService.get<string>('ARGENT_WALLET_PK');
 
-    const apiUrl = `${nodeUrl}?apikey=${rpcApiKey}`;
-    this.provider = new RpcProvider({ nodeUrl: apiUrl });
-
     try {
       this.account = new Account(
-        this.provider,
+        this.rpcProvider,
         walletAddress,
         walletPrivateKey,
       );
@@ -42,7 +39,9 @@ export class AirdropService {
   }
 
   async setupAirdrop(airdropDto: AirdropDto): Promise<Contract> {
-    const { abi } = await this.provider.getClassAt(airdropDto.contractAddress);
+    const { abi } = await this.rpcProvider.getClassAt(
+      airdropDto.contractAddress,
+    );
     if (!abi) {
       throw new Error('No ABI found for the contract address');
     }
@@ -51,7 +50,7 @@ export class AirdropService {
       const contract = new Contract(
         abi,
         airdropDto.contractAddress,
-        this.provider,
+        this.rpcProvider,
       );
       contract.connect(this.account);
       return contract;
@@ -77,9 +76,12 @@ export class AirdropService {
         calldata: call.calldata,
       });
 
-      const tx = await this.provider.waitForTransaction(res.transaction_hash, {
-        successStates: [TransactionFinalityStatus.ACCEPTED_ON_L2],
-      });
+      const tx = await this.rpcProvider.waitForTransaction(
+        res.transaction_hash,
+        {
+          successStates: [TransactionFinalityStatus.ACCEPTED_ON_L2],
+        },
+      );
 
       if (tx === undefined) {
         throw new Error('Transaction failed');

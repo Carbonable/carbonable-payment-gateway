@@ -1,6 +1,7 @@
 import { Module, DynamicModule, Global } from '@nestjs/common';
 import { StripeService } from './stripe.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
+import { stripeFactory } from './stripe.factory';
 
 @Global()
 @Module({})
@@ -9,16 +10,8 @@ export class StripeModule {
     return {
       module: StripeModule,
       imports: [ConfigModule],
-      providers: [
-        {
-          provide: 'STRIPE_API_KEY',
-          inject: [ConfigService],
-          useFactory: async (configService: ConfigService) =>
-            configService.get('STRIPE_SECRET_KEY'),
-        },
-        StripeService,
-      ],
-      exports: [StripeService, 'STRIPE_API_KEY'],
+      providers: [stripeFactory, StripeService],
+      exports: [StripeService, 'STRIPE_CLIENT'],
     };
   }
 }

@@ -3,13 +3,7 @@ import Stripe from 'stripe';
 
 @Injectable()
 export class StripeService {
-  private stripe: Stripe;
-
-  constructor(@Inject('STRIPE_API_KEY') private readonly apiKey: string) {
-    this.stripe = new Stripe(this.apiKey, {
-      apiVersion: '2024-04-10',
-    });
-  }
+  constructor(@Inject('STRIPE_CLIENT') private stripe: Stripe) {}
 
   async getPaymentIntent(
     paymentIntentId: string,

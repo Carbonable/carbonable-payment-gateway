@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { AirdropDto } from './dto/airdrop.dto';
 import { StripeService } from 'src/stripe/stripe.service';
 import { AirdropService } from 'src/airdrop/airdrop.service';
-import { GetTransactionReceiptResponse } from 'starknet';
+import {
+  GetTransactionReceiptResponse,
+  SuccessfulTransactionReceiptResponse,
+} from 'starknet';
 import Stripe from 'stripe';
 
 export interface PaymentServiceResponse {
@@ -27,16 +30,28 @@ export class PaymentService {
       throw new Error('Invalid payment intent');
     }
 
-    let tx = undefined;
+    let tx: GetTransactionReceiptResponse = undefined;
     // Airdrop shares
     try {
       tx = await this.airdropService.airdropShares(airdropDto);
     } catch (error) {
+      const regex = /Failure reason: [^\n]+/g;
+      const matches = error.message.match(regex);
+      await this.stripeService.updatePaymentIntentDescription(
+        airdropDto.paymentIntentId,
+        `Project: ${airdropDto.contractAddress} - Slot: ${airdropDto.slot} - Shares: ${airdropDto.shares} - ${matches[matches.length - 1]}`,
+      );
+
       await this.stripeService.cancelPaymentIntent(airdropDto.paymentIntentId);
       throw new Error(error.message);
     }
 
     // Capture payment intent
+    await this.stripeService.updatePaymentIntentDescription(
+      airdropDto.paymentIntentId,
+      `Transaction hash: ${(tx as SuccessfulTransactionReceiptResponse).transaction_hash}`,
+    );
+
     const pi = await this.stripeService.capturePaymentIntent(
       airdropDto.paymentIntentId,
     );

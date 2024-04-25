@@ -29,4 +29,13 @@ export class StripeService {
   async cancelPaymentIntent(paymentIntentId: string): Promise<void> {
     await this.stripe.paymentIntents.cancel(paymentIntentId);
   }
+
+  async updatePaymentIntentDescription(
+    paymentIntentId: string,
+    description: string,
+  ): Promise<Stripe.PaymentIntent> {
+    return this.stripe.paymentIntents.update(paymentIntentId, {
+      description,
+    });
+  }
 }

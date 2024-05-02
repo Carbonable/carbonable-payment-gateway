@@ -39,7 +39,8 @@ export class PaymentService {
       const matches = error.message.match(regex);
       await this.stripeService.updatePaymentIntentDescription(
         airdropDto.paymentIntentId,
-        `Project: ${airdropDto.contractAddress} - Slot: ${airdropDto.slot} - Shares: ${airdropDto.shares} - ${matches[matches.length - 1]}`,
+        `Project: ${airdropDto.contractAddress} - Slot: ${airdropDto.slot} - Shares: ${airdropDto.shares}`,
+        matches[matches.length - 1],
       );
 
       await this.stripeService.cancelPaymentIntent(airdropDto.paymentIntentId);
@@ -49,6 +50,7 @@ export class PaymentService {
     // Capture payment intent
     await this.stripeService.updatePaymentIntentDescription(
       airdropDto.paymentIntentId,
+      `Project: ${airdropDto.contractAddress} - Slot: ${airdropDto.slot} - Shares: ${airdropDto.shares}`,
       `Transaction hash: ${(tx as SuccessfulTransactionReceiptResponse).transaction_hash}`,
     );
 
